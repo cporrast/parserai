@@ -1,0 +1,26 @@
+<% content_for :title, "LLM request ##{@llm_request.id} · ParserAI" %>
+
+<nav class="mb-6 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
+  <%= link_to "Tasks", tasks_path, class: "hover:text-slate-900" %><span>/</span>
+  <% if @llm_request.loggable.is_a?(ScrapeRun) %><%= link_to "Workflow ##{@llm_request.loggable.id}", @llm_request.loggable, class: "hover:text-slate-900" %><span>/</span><% elsif @llm_request.loggable.is_a?(Project) %><%= link_to @llm_request.loggable.name, @llm_request.loggable, class: "hover:text-slate-900" %><span>/</span><% end %>
+  <span class="text-slate-900">LLM request #<%= @llm_request.id %></span>
+</nav>
+
+<div class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+  <div><div class="mb-3 flex items-center gap-2"><%= status_badge(@llm_request.status) %><span class="text-xs font-bold uppercase tracking-wider text-slate-400"><%= @llm_request.display_purpose %></span></div><h1 class="text-2xl font-bold tracking-tight">OpenRouter request #<%= @llm_request.id %></h1><p class="mt-2 font-mono text-xs text-slate-500"><%= @llm_request.model_requested %><% if @llm_request.model_returned.present? && @llm_request.model_returned != @llm_request.model_requested %> → <%= @llm_request.model_returned %><% end %></p></div>
+  <p class="text-xs text-slate-500"><%= @llm_request.started_at.strftime("%B %-d, %Y at %-I:%M:%S %p") %></p>
+</div>
+
+<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+  <main class="space-y-6">
+    <details class="card overflow-hidden" open><summary class="cursor-pointer px-5 py-4 text-sm font-bold">Submitted API request and prompts</summary><pre class="max-h-[700px] overflow-auto whitespace-pre-wrap border-t border-slate-800 bg-slate-950 p-5 font-mono text-[11px] leading-5 text-slate-200"><%= pretty_json(@llm_request.request_payload) %></pre></details>
+    <details class="card overflow-hidden" open><summary class="cursor-pointer px-5 py-4 text-sm font-bold">Raw API response</summary><pre class="max-h-[700px] overflow-auto whitespace-pre-wrap border-t border-slate-800 bg-slate-950 p-5 font-mono text-[11px] leading-5 text-slate-200"><%= @llm_request.response_payload.present? ? pretty_json(@llm_request.response_payload) : "No response payload was received." %></pre></details>
+    <% if @llm_request.error_message.present? %><section class="rounded-2xl border border-rose-200 bg-rose-50 p-5"><h2 class="text-sm font-bold text-rose-900"><%= @llm_request.error_class.presence || "Request error" %></h2><p class="mt-2 whitespace-pre-wrap text-xs leading-5 text-rose-800"><%= @llm_request.error_message %></p></section><% end %>
+  </main>
+  <aside class="space-y-4">
+    <section class="card p-5"><h2 class="text-sm font-bold">Request metadata</h2><dl class="mt-4 space-y-3 text-xs"><div><dt class="text-slate-400">Provider</dt><dd class="mt-1 font-semibold"><%= @llm_request.provider.humanize %></dd></div><div><dt class="text-slate-400">Endpoint</dt><dd class="mt-1 break-all font-mono text-[10px]"><%= @llm_request.endpoint %></dd></div><div><dt class="text-slate-400">Duration</dt><dd class="mt-1 font-semibold"><%= @llm_request.duration_ms ? "#{number_with_delimiter(@llm_request.duration_ms)} ms" : "—" %></dd></div><div><dt class="text-slate-400">Provider request ID</dt><dd class="mt-1 break-all font-mono text-[10px]"><%= @llm_request.provider_request_id.presence || "—" %></dd></div></dl></section>
+    <section class="card p-5"><h2 class="text-sm font-bold">Usage</h2><dl class="mt-4 space-y-3 text-xs"><% (@llm_request.usage || {}).each do |key, value| %><div class="flex justify-between gap-3"><dt class="text-slate-500"><%= key.humanize %></dt><dd class="font-bold"><%= number_with_delimiter(value) %></dd></div><% end %><% if @llm_request.usage.blank? %><p class="text-xs text-slate-500">No usage was reported.</p><% end %></dl></section>
+    <% if @llm_request.scrape_execution %><%= link_to @llm_request.scrape_execution, class: "card group flex items-center justify-between p-5 text-sm font-bold hover:border-indigo-200" do %><span>View execution #<%= @llm_request.scrape_execution_id %></span><%= icon(:arrow, classes: "size-4 text-slate-400 group-hover:text-indigo-600") %><% end %><% end %>
+    <% if @llm_request.scrape_source %><%= link_to @llm_request.scrape_source, class: "card group flex items-center justify-between p-5 text-sm font-bold hover:border-indigo-200" do %><span>View source snapshot</span><%= icon(:arrow, classes: "size-4 text-slate-400 group-hover:text-indigo-600") %><% end %><% end %>
+  </aside>
+</div>

@@ -1,0 +1,24 @@
+<section>
+  <div class="mb-4">
+    <h2 class="text-lg font-bold"><%= local_assigns.fetch(:title, "Workflow activity") %></h2>
+    <p class="mt-1 text-xs text-slate-500">Background setup, recommendation, and chat work. Provider calls from each operation remain in the API activity log.</p>
+  </div>
+  <% if async_operations.any? %>
+    <div class="card divide-y divide-slate-100 overflow-hidden">
+      <% async_operations.each do |operation| %>
+        <div class="flex items-center gap-4 p-4">
+          <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-slate-100 font-mono text-[11px] font-bold text-slate-600">#<%= operation.id %></span>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2"><h3 class="text-sm font-bold"><%= operation.kind.humanize %></h3><%= status_badge(operation.status) %></div>
+            <p class="mt-1 text-[11px] text-slate-500"><%= pluralize(operation.attempts, "attempt") %> · <%= operation.created_at.strftime("%b %-d · %-I:%M:%S %p") %><% if operation.error_message.present? %> · <span class="text-rose-600"><%= operation.error_message.truncate(120) %></span><% end %></p>
+          </div>
+          <% if operation.active? %>
+            <%= button_to "Cancel", async_operation_path(operation), method: :delete, class: "text-xs font-bold text-rose-600 hover:text-rose-800", form: { data: { turbo_confirm: "Cancel this background operation?" } } %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="card border-dashed p-6 text-sm text-slate-500">No background operations have been recorded yet.</div>
+  <% end %>
+</section>

@@ -1,0 +1,11 @@
+<% content_for :title, "Edit #{@scrape_run.display_name} · ParserAI" %>
+
+<div class="mx-auto max-w-4xl">
+  <%= link_to "← Back to workflow", @scrape_run, class: "mb-6 inline-flex text-sm font-semibold text-slate-500 hover:text-slate-900" %>
+  <div class="mb-8">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">Edit workflow</p>
+    <h1 class="mt-2 text-3xl font-bold tracking-tight">Refine the extraction setup</h1>
+    <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Existing execution snapshots and outputs stay unchanged. New executions will use the version you save here.</p>
+  </div>
+  <%= render "form", project: @project, scrape_run: @scrape_run %>
+</div>

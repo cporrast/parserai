@@ -1,0 +1,148 @@
+<%= form_with model: scrape_run.persisted? ? scrape_run : [project, scrape_run], class: "space-y-5", data: { controller: "schema-editor processing-mode selector-editor setup-prefetch", scrape_run_id: scrape_run.id, schema_editor_suggest_url_value: suggest_schema_project_scrape_runs_path(project), selector_editor_suggest_url_value: suggest_rules_project_scrape_runs_path(project), selector_editor_test_url_value: test_rules_project_scrape_runs_path(project), setup_prefetch_url_value: prefetch_setup_project_scrape_runs_path(project) } do |form| %>
+  <%= render "shared/errors", record: scrape_run %>
+
+  <section class="card p-6 sm:p-8">
+    <div class="flex gap-4">
+      <span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-bold text-white">1</span>
+      <div class="w-full">
+        <%= form.label :urls_text, "Pages to scrape", class: "form-label" %>
+        <%= form.text_area :urls_text, rows: 6, required: true, class: "form-input resize-y font-mono text-xs leading-6", placeholder: "https://example.com/products/one\nhttps://example.com/products/two", data: { schema_editor_target: "urls", selector_editor_target: "urls", setup_prefetch_target: "urls", action: "input->setup-prefetch#queue" } %>
+        <p class="form-help">One public HTTP or HTTPS URL per line. <span data-setup-prefetch-target="status">The first page will be prepared with Nokogiri as you work.</span></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card p-6 sm:p-8">
+    <div class="flex gap-4">
+      <span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-bold text-white">2</span>
+      <div class="w-full">
+        <%= form.label :instructions, "Information to extract", class: "form-label" %>
+        <%= form.text_area :instructions, rows: 6, required: true, class: "form-input resize-y", placeholder: "Extract each product’s name, current price, short description, category, and availability.", data: { schema_editor_target: "instructions", selector_editor_target: "instructions" } %>
+        <p class="form-help">Be explicit about edge cases, missing values, and normalization.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card p-6 sm:p-8">
+    <div class="flex gap-4">
+      <span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-bold text-white">3</span>
+      <div class="w-full">
+        <%= form.label :processing_mode, "Processing engine", class: "form-label" %>
+        <%= form.select :processing_mode, [["LLM extraction — interpret unstructured content", "llm"], ["Nokogiri selectors — deterministic CSS/XPath rules", "selectors"]], {}, class: "form-input", data: { processing_mode_target: "select", action: "change->processing-mode#change" } %>
+        <p class="form-help">Selector workflows use the AI only while suggesting rules. Executions run locally with Nokogiri and make no LLM request.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card p-6 sm:p-8">
+    <div class="flex gap-4">
+      <span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-bold text-white">4</span>
+      <div class="w-full">
+        <h2 class="form-label">Model routing</h2>
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div>
+            <%= form.label :setup_model, "Setup assistant model", class: "form-label" %>
+            <%= form.text_field :setup_model, class: "form-input font-mono text-xs", placeholder: Llm::Configuration.model_for(:setup), data: { schema_editor_target: "model", selector_editor_target: "model" } %>
+            <p class="form-help">Used only when suggesting schemas or selector rules.</p>
+          </div>
+          <div data-processing-mode-target="llmPanel">
+            <%= form.label :extraction_model, "Extraction model", class: "form-label" %>
+            <%= form.text_field :extraction_model, class: "form-input font-mono text-xs", placeholder: Llm::Configuration.model_for(:extraction) %>
+            <p class="form-help">Snapshotted when an LLM execution starts. Use an OpenRouter model ID such as <code>openrouter/auto</code>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card p-6 sm:p-8" data-processing-mode-target="llmPanel">
+    <div class="flex gap-4">
+      <span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-bold text-white">5</span>
+      <div class="w-full">
+        <%= form.label :content_strategy, "Page representation", class: "form-label" %>
+        <%= form.select :content_strategy, [["Standard — readable text + structured HTML", "standard"], ["Visible text only — articles and summaries", "visible_text"], ["Metadata, links, and media — directories and assets", "metadata"], ["Raw HTML — advanced fallback", "raw_html"]], {}, class: "form-input" %>
+        <div class="mt-3 grid gap-2 text-xs leading-5 text-slate-500 sm:grid-cols-2"><p><strong class="text-slate-700">Standard</strong> includes compact links, images, metadata, tables, JSON-LD, and relevant attributes alongside readable text.</p><p><strong class="text-slate-700">Raw HTML</strong> sends markup directly with a strict prompt-size cap. The original normalized HTML is always retained regardless of this setting.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card p-6 sm:p-8" data-processing-mode-target="selectorPanel">
+    <div class="flex gap-4">
+      <span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-bold text-white">5</span>
+      <div class="w-full">
+        <div class="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div><%= form.label :selector_rules, "Nokogiri extraction rules", class: "form-label" %><p class="form-help mt-0">Edit JSON rules directly or ask AI to inspect the first page. Previewing never saves output or creates an execution.</p></div>
+          <div class="flex flex-wrap gap-2"><button type="button" class="btn-secondary" data-selector-editor-target="suggestButton" data-action="selector-editor#suggest">Suggest rules with AI</button><button type="button" class="btn-primary" data-action="selector-editor#preview">Preview extraction</button><button type="button" class="btn-secondary" data-refresh="true" data-action="selector-editor#preview">Refresh &amp; preview</button></div>
+        </div>
+        <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-inner">
+          <div class="flex items-center justify-between border-b border-slate-800 px-4 py-2.5"><span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">selectors.json</span><button type="button" class="rounded-md px-2 py-1 text-[11px] font-bold text-slate-400 hover:bg-slate-800 hover:text-white" data-action="selector-editor#format">Format JSON</button></div>
+          <div class="grid grid-cols-[48px_minmax(0,1fr)]"><pre class="max-h-[480px] select-none overflow-hidden border-r border-slate-800 bg-slate-900/60 px-3 py-4 text-right font-mono text-xs leading-6 text-slate-600" data-selector-editor-target="lineNumbers">1</pre><%= form.text_area :selector_rules, rows: 16, spellcheck: false, class: "max-h-[480px] min-h-96 w-full resize-y overflow-auto whitespace-pre bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100 outline-none", data: { selector_editor_target: "editor", action: "input->selector-editor#update scroll->selector-editor#syncScroll keydown->selector-editor#keydown" } %></div>
+          <div class="flex items-center justify-between border-t border-slate-800 px-4 py-2 text-[11px]"><span data-selector-editor-target="status">Valid JSON</span><span class="text-slate-600">No Ruby code is executed</span></div>
+        </div>
+        <div class="mt-5 hidden overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" data-selector-editor-target="previewContainer">
+          <div class="flex flex-col gap-2 border-b border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div><p class="text-sm font-bold text-slate-900">Preview &amp; debug</p><p class="mt-0.5 max-w-2xl truncate text-[11px] text-slate-500" data-selector-editor-target="pageMeta">Cached source HTML</p></div>
+            <span class="text-xs font-bold text-indigo-700" data-selector-editor-target="matchCount"></span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-2 text-[11px]" data-selector-editor-target="legend"></div>
+          <div class="grid lg:grid-cols-2">
+            <section class="border-b border-slate-200 bg-white lg:border-b-0 lg:border-r">
+              <div class="flex items-center justify-between border-b border-slate-200 px-4 py-2.5"><h3 class="text-xs font-bold text-slate-700">Highlighted source HTML</h3><span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Scripts disabled</span></div>
+              <iframe class="h-[560px] w-full bg-white" sandbox="" referrerpolicy="no-referrer" title="Highlighted selector preview" data-selector-editor-target="pagePreview"></iframe>
+            </section>
+            <section class="bg-slate-950">
+              <div class="flex items-center justify-between border-b border-slate-800 px-4 py-2.5"><h3 class="text-xs font-bold text-slate-200" data-selector-editor-target="outputLabel">Final JSON · one previewed URL</h3><span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Exact execution shape</span></div>
+              <pre class="h-[560px] overflow-auto p-4 font-mono text-xs leading-6 text-slate-200" data-selector-editor-target="preview"></pre>
+            </section>
+          </div>
+          <section class="border-t border-slate-200 bg-white p-4"><h3 class="text-xs font-bold text-slate-800">Selector diagnostics</h3><div class="mt-3" data-selector-editor-target="diagnostics"></div></section>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card p-6 sm:p-8" data-controller="output-format">
+    <div class="flex gap-4">
+      <span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-bold text-white">6</span>
+      <div class="w-full">
+        <div class="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div class="w-full sm:w-44">
+            <%= form.label :output_format, "Export format", class: "form-label" %>
+            <%= form.select :output_format, [["JSON", "json"], ["CSV", "csv"]], {}, class: "form-input", data: { output_format_target: "select", selector_editor_target: "outputFormat", action: "change->output-format#change" } %>
+          </div>
+          <button type="button" class="btn-secondary" data-output-format-target="suggest" data-schema-editor-target="suggestButton" data-action="schema-editor#suggest">Suggest with AI</button>
+        </div>
+
+        <%= form.label :output_schema, "JSON Schema or example", class: "form-label", data: { output_format_target: "label" } %>
+        <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-inner">
+          <div class="flex items-center justify-between border-b border-slate-800 px-4 py-2.5">
+            <div class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-rose-400"></span><span class="size-2.5 rounded-full bg-amber-300"></span><span class="size-2.5 rounded-full bg-emerald-400"></span><span class="ml-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">output.schema.json</span></div>
+            <button type="button" class="rounded-md px-2 py-1 text-[11px] font-bold text-slate-400 hover:bg-slate-800 hover:text-white" data-output-format-target="format" data-action="schema-editor#format">Format JSON</button>
+          </div>
+          <div class="grid grid-cols-[48px_minmax(0,1fr)]">
+            <pre class="max-h-[480px] select-none overflow-hidden border-r border-slate-800 bg-slate-900/60 px-3 py-4 text-right font-mono text-xs leading-6 text-slate-600" aria-hidden="true" data-schema-editor-target="lineNumbers">1</pre>
+            <%= form.text_area :output_schema, rows: 16, required: true, spellcheck: false, class: "max-h-[480px] min-h-96 w-full resize-y overflow-auto whitespace-pre bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100 outline-none", data: { output_format_target: "schema", schema_editor_target: "editor", selector_editor_target: "outputSchema", action: "input->schema-editor#update scroll->schema-editor#syncScroll keydown->schema-editor#keydown", json_value: scrape_run.output_format == "json" ? scrape_run.output_schema : "", csv_value: scrape_run.output_format == "csv" ? scrape_run.output_schema : "" } %>
+          </div>
+          <div class="flex items-center justify-between border-t border-slate-800 px-4 py-2 text-[11px]"><span data-schema-editor-target="status">Valid JSON</span><span class="text-slate-600">Tab inserts 2 spaces</span></div>
+        </div>
+        <p class="form-help" data-output-format-target="help">Provide a JSON Schema or an example JSON object. Formatting and line breaks are preserved.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card p-6 sm:p-8">
+    <div class="flex gap-4">
+      <span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-bold text-white">7</span>
+      <div class="w-full">
+        <%= form.label :recurrence, "Update schedule", class: "form-label" %>
+        <%= form.select :recurrence, [["Manual only", "manual"], ["Every hour", "hourly"], ["Every day", "daily"], ["Every week", "weekly"], ["Every month", "monthly"]], {}, class: "form-input max-w-sm" %>
+        <p class="form-help">Scheduled executions use the latest saved workflow and preserve a separate result history. Times use <%= Time.zone.name %>.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="flex flex-col-reverse items-center justify-between gap-4 pt-2 sm:flex-row">
+    <p class="text-xs text-slate-500">Saving never starts an execution. Review and iterate as often as needed.</p>
+    <div class="flex w-full gap-3 sm:w-auto"><%= link_to "Cancel", scrape_run.persisted? ? scrape_run_path(scrape_run) : project_path(project), class: "btn-secondary flex-1 sm:flex-none" %><%= form.submit scrape_run.persisted? ? "Save changes" : "Save workflow", class: "btn-primary flex-1 cursor-pointer sm:flex-none" %></div>
+  </div>
+<% end %>

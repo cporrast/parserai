@@ -1,0 +1,70 @@
+<% content_for :title, "Tasks · ParserAI" %>
+
+<section class="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+  <div>
+    <p class="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">Workspace</p>
+    <h1 class="text-3xl font-bold tracking-tight text-slate-950">All extraction tasks</h1>
+    <p class="mt-2 text-sm leading-6 text-slate-500">Monitor and open workflows across every project. Active work is surfaced first by default.</p>
+  </div>
+  <%= link_to projects_path, class: "btn-secondary shrink-0" do %><%= icon(:folder, classes: "size-4") %> Browse projects<% end %>
+</section>
+
+<section class="card mb-5 p-4">
+  <%= form_with url: tasks_path, method: :get, class: "flex flex-col gap-3 sm:flex-row sm:items-end" do |form| %>
+    <%= hidden_field_tag :sort, @sort unless @sort == "default" %>
+    <%= hidden_field_tag :direction, @direction unless @sort == "default" %>
+    <div class="w-full sm:max-w-xs">
+      <%= form.label :project_id, "Project", class: "mb-1.5 block text-xs font-bold text-slate-600" %>
+      <%= form.select :project_id, options_from_collection_for_select(@projects, :id, :name, @project_filter), { include_blank: "All projects" }, class: "form-input py-2.5" %>
+    </div>
+    <div class="w-full sm:max-w-52">
+      <%= form.label :status, "Status", class: "mb-1.5 block text-xs font-bold text-slate-600" %>
+      <%= form.select :status, options_for_select([["Draft", "draft"], ["Queued", "queued"], ["Fetching", "fetching"], ["Processing", "processing"], ["Completed", "completed"], ["Failed", "failed"]], @status_filter), { include_blank: "All statuses" }, class: "form-input py-2.5" %>
+    </div>
+    <div class="flex gap-2"><%= form.submit "Apply filters", class: "btn-primary cursor-pointer py-2.5" %><% if @project_filter || @status_filter %><%= link_to "Clear", tasks_path(sort: @sort == "default" ? nil : @sort, direction: @sort == "default" ? nil : @direction), class: "btn-ghost" %><% end %></div>
+  <% end %>
+</section>
+
+<div class="mb-3 flex items-center justify-between px-1 text-xs font-medium text-slate-500"><span><%= pluralize(@tasks.size, "task") %></span><% if @sort == "default" %><span>Active first · newest updated next</span><% end %></div>
+
+<section class="card overflow-hidden">
+  <% if @tasks.any? %>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[900px] border-collapse text-left">
+        <thead class="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          <tr>
+            <th class="px-5 py-3.5">Task</th>
+            <th class="px-5 py-3.5"><%= task_sort_link("Project", "project") %></th>
+            <th class="px-5 py-3.5"><%= task_sort_link("Status", "status") %></th>
+            <th class="px-5 py-3.5">Schedule</th>
+            <th class="px-5 py-3.5 text-center">Executions</th>
+            <th class="px-5 py-3.5"><%= task_sort_link("Updated", "updated") %></th>
+            <th class="w-12 px-3 py-3.5"><span class="sr-only">Open</span></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <% @tasks.each do |task| %>
+            <tr class="group transition hover:bg-indigo-50/35 <%= task.active? ? "bg-cyan-50/30" : "bg-white" %>">
+              <td class="max-w-md px-5 py-4">
+                <%= link_to task, class: "block" do %>
+                  <div class="flex items-start gap-3">
+                    <% if task.active? %><span class="mt-1.5 size-2 shrink-0 animate-pulse rounded-full bg-cyan-500 ring-4 ring-cyan-100"></span><% else %><span class="mt-1.5 size-2 shrink-0 rounded-full bg-slate-300"></span><% end %>
+                    <div class="min-w-0"><p class="truncate text-sm font-bold text-slate-900 group-hover:text-indigo-700"><%= task.instructions %></p><p class="mt-1 text-xs text-slate-500"><%= pluralize(task.urls.size, "target") %> · <%= task.output_format.upcase %></p></div>
+                  </div>
+                <% end %>
+              </td>
+              <td class="px-5 py-4"><%= link_to task.project.name, task.project, class: "text-sm font-semibold text-slate-600 hover:text-indigo-700" %></td>
+              <td class="px-5 py-4"><%= status_badge(task.task_status) %></td>
+              <td class="px-5 py-4 text-sm text-slate-600"><%= task.schedule_label %></td>
+              <td class="px-5 py-4 text-center font-mono text-sm font-semibold text-slate-600"><%= task.scrape_executions.size %></td>
+              <td class="whitespace-nowrap px-5 py-4"><p class="text-sm font-medium text-slate-700"><%= time_ago_in_words(task.updated_at) %> ago</p><p class="mt-0.5 text-[11px] text-slate-400"><%= task.updated_at.strftime("%b %-d, %Y · %-I:%M %p") %></p></td>
+              <td class="px-3 py-4"><%= link_to task, class: "grid size-8 place-items-center rounded-lg text-slate-300 transition hover:bg-white hover:text-indigo-600 hover:shadow-sm" do %><%= icon(:arrow, classes: "size-4") %><% end %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="grid min-h-80 place-items-center border-dashed p-10 text-center"><div class="max-w-sm"><span class="mx-auto grid size-12 place-items-center rounded-xl bg-slate-100 text-slate-500"><%= icon(:database) %></span><h2 class="mt-4 font-bold">No tasks match</h2><p class="mt-2 text-sm leading-6 text-slate-500"><%= @project_filter || @status_filter ? "Clear the filters to see all extraction workflows." : "Create a project and save its first workflow to see it here." %></p><%= link_to(@project_filter || @status_filter ? "Clear filters" : "Browse projects", @project_filter || @status_filter ? tasks_path : projects_path, class: "btn-primary mt-5") %></div></div>
+  <% end %>
+</section>

@@ -1,0 +1,7 @@
+<% content_for :title, "Edit #{@project.name} · ParserAI" %>
+
+<div class="mx-auto max-w-2xl">
+  <%= link_to "← Back to project", @project, class: "mb-6 inline-flex text-sm font-semibold text-slate-500 hover:text-slate-900" %>
+  <h1 class="mb-7 text-3xl font-bold tracking-tight">Edit project</h1>
+  <div class="card p-6 sm:p-8"><%= render "form", project: @project %></div>
+</div>

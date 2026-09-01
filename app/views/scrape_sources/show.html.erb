@@ -1,0 +1,17 @@
+<% content_for :title, "#{@source.title.presence || @source.host} · ParserAI" %>
+
+<div class="mx-auto max-w-6xl">
+  <%= link_to "← Back to execution ##{@execution.id}", @execution, class: "mb-6 inline-flex text-sm font-semibold text-slate-500 hover:text-slate-900" %>
+  <div class="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div class="min-w-0"><div class="mb-3"><%= status_badge(@source.status) %></div><h1 class="truncate text-2xl font-bold tracking-tight"><%= @source.title.presence || @source.host %></h1><% if (external_url = safe_external_url(@source.final_url.presence || @source.url)) %><%= link_to external_url, external_url, target: "_blank", rel: "noopener noreferrer", class: "mt-2 block truncate text-sm text-indigo-600 hover:underline" %><% else %><p class="mt-2 truncate text-sm text-slate-500"><%= @source.url %></p><% end %></div><% if @source.source_output %><%= link_to "View extracted output", @source.source_output, class: "btn-primary shrink-0" %><% end %></div>
+
+  <% if @source.error_message.present? %><div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><span class="font-bold">Source error:</span> <%= @source.error_message %></div><% end %>
+
+  <div class="mb-6 grid gap-4 sm:grid-cols-4"><div class="card p-4"><p class="text-xs text-slate-400">HTTP status</p><p class="mt-1 font-bold"><%= @source.http_status || "—" %></p></div><div class="card p-4"><p class="text-xs text-slate-400">Content type</p><p class="mt-1 truncate text-sm font-bold"><%= @source.content_type.presence || "—" %></p></div><div class="card p-4"><p class="text-xs text-slate-400">Raw size</p><p class="mt-1 font-bold"><%= @source.raw_html ? number_to_human_size(@source.raw_html.bytesize) : "—" %></p></div><div class="card p-4"><p class="text-xs text-slate-400">Fetched</p><p class="mt-1 text-sm font-bold"><%= @source.fetched_at&.strftime("%b %-d, %-I:%M %p") || "—" %></p></div></div>
+
+  <div class="card overflow-hidden" data-controller="tabs">
+    <div class="flex gap-1 overflow-x-auto border-b border-slate-100 p-2"><button class="rounded-lg bg-slate-950 px-4 py-2 text-xs font-bold text-white" data-tabs-target="tab" data-action="tabs#select" data-index="0">Readable text</button><button class="rounded-lg px-4 py-2 text-xs font-bold text-slate-500" data-tabs-target="tab" data-action="tabs#select" data-index="1">Structured HTML</button><button class="rounded-lg px-4 py-2 text-xs font-bold text-slate-500" data-tabs-target="tab" data-action="tabs#select" data-index="2">Raw HTML</button></div>
+    <pre class="max-h-[680px] min-h-80 overflow-auto whitespace-pre-wrap bg-white p-6 font-mono text-xs leading-6 text-slate-700" data-tabs-target="panel"><%= @source.extracted_text.presence || "No readable content was stored." %></pre>
+    <pre class="hidden max-h-[680px] min-h-80 overflow-auto bg-slate-950 p-6 font-mono text-xs leading-6 text-slate-200" data-tabs-target="panel"><%= pretty_json(@source.structured_data) %></pre>
+    <pre class="hidden max-h-[680px] min-h-80 overflow-auto whitespace-pre-wrap bg-slate-950 p-6 font-mono text-xs leading-6 text-slate-200" data-tabs-target="panel"><%= @source.raw_html.presence || "No HTML was stored." %></pre>
+  </div>
+</div>

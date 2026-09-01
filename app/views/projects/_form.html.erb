@@ -1,0 +1,23 @@
+<%= form_with model: project, class: "space-y-6" do |form| %>
+  <%= render "shared/errors", record: project %>
+
+  <div>
+    <%= form.label :name, class: "form-label" %>
+    <%= form.text_field :name, class: "form-input", placeholder: "e.g. Indie tools directory", autofocus: true %>
+  </div>
+  <div>
+    <%= form.label :chat_model, "Project chat model", class: "form-label" %>
+    <%= form.text_field :chat_model, class: "form-input font-mono text-xs", placeholder: Llm::Configuration.model_for(:chat) %>
+    <p class="form-help">OpenRouter model used to answer questions about this project's latest extracted data.</p>
+  </div>
+  <div>
+    <%= form.label :description, class: "form-label" %>
+    <%= form.text_area :description, rows: 5, class: "form-input resize-y", placeholder: "What are you collecting and how will you use it?" %>
+    <p class="form-help">This context is also available to the project’s data chat.</p>
+  </div>
+
+  <div class="flex items-center justify-end gap-3 border-t border-slate-100 pt-6">
+    <%= link_to "Cancel", project.persisted? ? project_path(project) : projects_path, class: "btn-ghost" %>
+    <%= form.submit project.persisted? ? "Save changes" : "Create project", class: "btn-primary cursor-pointer" %>
+  </div>
+<% end %>
